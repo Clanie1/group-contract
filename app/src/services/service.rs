@@ -8,6 +8,7 @@ use sails_rs::{
 // import the state
 use crate::states::*;
 use crate::services::service::state::*;
+use crate::utils::Utils;
 
 #[derive(Default)]
 pub struct Service;
@@ -28,18 +29,14 @@ impl Service {
     }
 
     // Service to create a group
-    pub fn create_group(&mut self, group_id: u32) -> Events {
-        // Validation - check if the group already exists
-        let state = State::state_mut();
-        if state.groups.iter().any(|g| g.id == group_id) {
-            return Events::Error("Group already exists".to_owned());
-        }
+    pub fn create_group(&mut self) -> Events {
+        let new_group_id = Utils::generate_group_id();
 
         // Logic to create a group
-        state.create_group(group_id);
+        state.create_group(new_group_id);
 
         // Change State and return event
-        Events::GroupCreated(group_id)
+        Events::GroupCreated(new_group_id)
     }
 
     // Service for a user to join a specific group
@@ -71,7 +68,7 @@ impl Service {
             return Events::ExpenseAdded(group_id, expense.id);
         }
         Events::Error("Group not found".to_owned())
-    }
+    } 
 
     // Queried function to get all admin ids
     pub fn query_admins(&self) -> Vec<ActorId> {

@@ -6,6 +6,7 @@ use sails_rs::prelude::*;
 // import our modules 
 pub mod states;
 pub mod services;
+pub mod utils;
 
 // Import service to be used for the program
 use services::service::Service;
