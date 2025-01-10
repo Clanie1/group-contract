@@ -1,20 +1,26 @@
+type Expense = struct {
+  id: u32,
+  description: str,
+  amount: u128,
+  currency: str,
+};
+
 type Events = enum {
-  ProducerRegistered: struct { id: actor_id },
-  ProducerAlreadyRegistered: struct { id: actor_id },
-  ProducerNotFound: struct { id: actor_id },
-  EnergyUpdated: struct { id: actor_id, energy: u64 },
-  AdminRegistered: struct { id: actor_id },
-  AdminAlreadyRegistered: struct { id: actor_id },
+  GroupCreated: u32,
+  UserJoined: struct { actor_id, u32 },
+  ExpenseAdded: struct { u32, u32 },
+  Error: str,
 };
 
 type IoState = struct {
   admins: vec actor_id,
-  energy_producers: vec IoEnergyProducer,
+  groups: vec Group,
 };
 
-type IoEnergyProducer = struct {
-  id: actor_id,
-  energy_generated: u64,
+type Group = struct {
+  id: u32,
+  members: vec actor_id,
+  expenses: vec Expense,
 };
 
 constructor {
@@ -22,11 +28,12 @@ constructor {
 };
 
 service Service {
-  RegisterAdmin : (admin_id: actor_id) -> Events;
-  RegisterProducer : (producer_id: actor_id) -> Events;
-  UpdateProducerEnergy : (producer_id: actor_id, energy: u64) -> Events;
-  query QueryAdmins : () -> IoState;
-  query QueryEnergyProducers : () -> IoState;
-  query QueryProducerEnergy : (producer_id: actor_id) -> opt u64;
+  AddExpense : (group_id: u32, expense: Expense) -> Events;
+  CreateGroup : (group_id: u32) -> Events;
+  JoinGroup : (group_id: u32, user_id: actor_id) -> Events;
+  query Query : () -> IoState;
+  query QueryAdmins : () -> vec actor_id;
+  query QueryExpenses : (group_id: u32) -> opt vec Expense;
+  query QueryGroupMembers : (group_id: u32) -> opt vec actor_id;
 };
 

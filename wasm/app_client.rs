@@ -11,14 +11,12 @@ pub struct AppFactory<R> {
     #[allow(dead_code)]
     remoting: R,
 }
-
 impl<R> AppFactory<R> {
     #[allow(unused)]
     pub fn new(remoting: R) -> Self {
         Self { remoting }
     }
 }
-
 impl<R: Remoting + Clone> traits::AppFactory for AppFactory<R> {
     type Args = R::Args;
     fn new(&self) -> impl Activation<Args = R::Args> {
@@ -32,14 +30,12 @@ pub mod app_factory {
         use super::*;
         use sails_rs::calls::ActionIo;
         pub struct New(());
-
         impl New {
             #[allow(dead_code)]
             pub fn encode_call() -> Vec<u8> {
                 <New as ActionIo>::encode_call(&())
             }
         }
-
         impl ActionIo for New {
             const ROUTE: &'static [u8] = &[12, 78, 101, 119];
             type Params = ();
@@ -50,48 +46,50 @@ pub mod app_factory {
 pub struct Service<R> {
     remoting: R,
 }
-
 impl<R> Service<R> {
     pub fn new(remoting: R) -> Self {
         Self { remoting }
     }
 }
-
 impl<R: Remoting + Clone> traits::Service for Service<R> {
     type Args = R::Args;
-    fn register_admin(&mut self, admin_id: ActorId) -> impl Call<Output = Events, Args = R::Args> {
-        RemotingAction::<_, service::io::RegisterAdmin>::new(self.remoting.clone(), admin_id)
-    }
-    fn register_producer(
+    fn add_expense(
         &mut self,
-        producer_id: ActorId,
+        group_id: u32,
+        expense: Expense,
     ) -> impl Call<Output = Events, Args = R::Args> {
-        RemotingAction::<_, service::io::RegisterProducer>::new(self.remoting.clone(), producer_id)
-    }
-    fn update_producer_energy(
-        &mut self,
-        producer_id: ActorId,
-        energy: u64,
-    ) -> impl Call<Output = Events, Args = R::Args> {
-        RemotingAction::<_, service::io::UpdateProducerEnergy>::new(
+        RemotingAction::<_, service::io::AddExpense>::new(
             self.remoting.clone(),
-            (producer_id, energy),
+            (group_id, expense),
         )
     }
-    fn query_admins(&self) -> impl Query<Output = IoState, Args = R::Args> {
+    fn create_group(&mut self, group_id: u32) -> impl Call<Output = Events, Args = R::Args> {
+        RemotingAction::<_, service::io::CreateGroup>::new(self.remoting.clone(), group_id)
+    }
+    fn join_group(
+        &mut self,
+        group_id: u32,
+        user_id: ActorId,
+    ) -> impl Call<Output = Events, Args = R::Args> {
+        RemotingAction::<_, service::io::JoinGroup>::new(self.remoting.clone(), (group_id, user_id))
+    }
+    fn query(&self) -> impl Query<Output = IoState, Args = R::Args> {
+        RemotingAction::<_, service::io::Query>::new(self.remoting.clone(), ())
+    }
+    fn query_admins(&self) -> impl Query<Output = Vec<ActorId>, Args = R::Args> {
         RemotingAction::<_, service::io::QueryAdmins>::new(self.remoting.clone(), ())
     }
-    fn query_energy_producers(&self) -> impl Query<Output = IoState, Args = R::Args> {
-        RemotingAction::<_, service::io::QueryEnergyProducers>::new(self.remoting.clone(), ())
-    }
-    fn query_producer_energy(
+    fn query_expenses(
         &self,
-        producer_id: ActorId,
-    ) -> impl Query<Output = Option<u64>, Args = R::Args> {
-        RemotingAction::<_, service::io::QueryProducerEnergy>::new(
-            self.remoting.clone(),
-            producer_id,
-        )
+        group_id: u32,
+    ) -> impl Query<Output = Option<Vec<Expense>>, Args = R::Args> {
+        RemotingAction::<_, service::io::QueryExpenses>::new(self.remoting.clone(), group_id)
+    }
+    fn query_group_members(
+        &self,
+        group_id: u32,
+    ) -> impl Query<Output = Option<Vec<ActorId>>, Args = R::Args> {
+        RemotingAction::<_, service::io::QueryGroupMembers>::new(self.remoting.clone(), group_id)
     }
 }
 
@@ -101,134 +99,143 @@ pub mod service {
     pub mod io {
         use super::*;
         use sails_rs::calls::ActionIo;
-        pub struct RegisterAdmin(());
-
-        impl RegisterAdmin {
+        pub struct AddExpense(());
+        impl AddExpense {
             #[allow(dead_code)]
-            pub fn encode_call(admin_id: ActorId) -> Vec<u8> {
-                <RegisterAdmin as ActionIo>::encode_call(&admin_id)
+            pub fn encode_call(group_id: u32, expense: super::Expense) -> Vec<u8> {
+                <AddExpense as ActionIo>::encode_call(&(group_id, expense))
             }
         }
-
-        impl ActionIo for RegisterAdmin {
+        impl ActionIo for AddExpense {
             const ROUTE: &'static [u8] = &[
-                28, 83, 101, 114, 118, 105, 99, 101, 52, 82, 101, 103, 105, 115, 116, 101, 114, 65,
-                100, 109, 105, 110,
+                28, 83, 101, 114, 118, 105, 99, 101, 40, 65, 100, 100, 69, 120, 112, 101, 110, 115,
+                101,
             ];
-            type Params = ActorId;
+            type Params = (u32, super::Expense);
             type Reply = super::Events;
         }
-        pub struct RegisterProducer(());
-
-        impl RegisterProducer {
+        pub struct CreateGroup(());
+        impl CreateGroup {
             #[allow(dead_code)]
-            pub fn encode_call(producer_id: ActorId) -> Vec<u8> {
-                <RegisterProducer as ActionIo>::encode_call(&producer_id)
+            pub fn encode_call(group_id: u32) -> Vec<u8> {
+                <CreateGroup as ActionIo>::encode_call(&group_id)
             }
         }
-
-        impl ActionIo for RegisterProducer {
+        impl ActionIo for CreateGroup {
             const ROUTE: &'static [u8] = &[
-                28, 83, 101, 114, 118, 105, 99, 101, 64, 82, 101, 103, 105, 115, 116, 101, 114, 80,
-                114, 111, 100, 117, 99, 101, 114,
+                28, 83, 101, 114, 118, 105, 99, 101, 44, 67, 114, 101, 97, 116, 101, 71, 114, 111,
+                117, 112,
             ];
-            type Params = ActorId;
+            type Params = u32;
             type Reply = super::Events;
         }
-        pub struct UpdateProducerEnergy(());
-
-        impl UpdateProducerEnergy {
+        pub struct JoinGroup(());
+        impl JoinGroup {
             #[allow(dead_code)]
-            pub fn encode_call(producer_id: ActorId, energy: u64) -> Vec<u8> {
-                <UpdateProducerEnergy as ActionIo>::encode_call(&(producer_id, energy))
+            pub fn encode_call(group_id: u32, user_id: ActorId) -> Vec<u8> {
+                <JoinGroup as ActionIo>::encode_call(&(group_id, user_id))
             }
         }
-
-        impl ActionIo for UpdateProducerEnergy {
+        impl ActionIo for JoinGroup {
             const ROUTE: &'static [u8] = &[
-                28, 83, 101, 114, 118, 105, 99, 101, 80, 85, 112, 100, 97, 116, 101, 80, 114, 111,
-                100, 117, 99, 101, 114, 69, 110, 101, 114, 103, 121,
+                28, 83, 101, 114, 118, 105, 99, 101, 36, 74, 111, 105, 110, 71, 114, 111, 117, 112,
             ];
-            type Params = (ActorId, u64);
+            type Params = (u32, ActorId);
             type Reply = super::Events;
+        }
+        pub struct Query(());
+        impl Query {
+            #[allow(dead_code)]
+            pub fn encode_call() -> Vec<u8> {
+                <Query as ActionIo>::encode_call(&())
+            }
+        }
+        impl ActionIo for Query {
+            const ROUTE: &'static [u8] = &[
+                28, 83, 101, 114, 118, 105, 99, 101, 20, 81, 117, 101, 114, 121,
+            ];
+            type Params = ();
+            type Reply = super::IoState;
         }
         pub struct QueryAdmins(());
-
         impl QueryAdmins {
             #[allow(dead_code)]
             pub fn encode_call() -> Vec<u8> {
                 <QueryAdmins as ActionIo>::encode_call(&())
             }
         }
-
         impl ActionIo for QueryAdmins {
             const ROUTE: &'static [u8] = &[
                 28, 83, 101, 114, 118, 105, 99, 101, 44, 81, 117, 101, 114, 121, 65, 100, 109, 105,
                 110, 115,
             ];
             type Params = ();
-            type Reply = super::IoState;
+            type Reply = Vec<ActorId>;
         }
-        pub struct QueryEnergyProducers(());
-
-        impl QueryEnergyProducers {
+        pub struct QueryExpenses(());
+        impl QueryExpenses {
             #[allow(dead_code)]
-            pub fn encode_call() -> Vec<u8> {
-                <QueryEnergyProducers as ActionIo>::encode_call(&())
+            pub fn encode_call(group_id: u32) -> Vec<u8> {
+                <QueryExpenses as ActionIo>::encode_call(&group_id)
             }
         }
-
-        impl ActionIo for QueryEnergyProducers {
+        impl ActionIo for QueryExpenses {
             const ROUTE: &'static [u8] = &[
-                28, 83, 101, 114, 118, 105, 99, 101, 80, 81, 117, 101, 114, 121, 69, 110, 101, 114,
-                103, 121, 80, 114, 111, 100, 117, 99, 101, 114, 115,
+                28, 83, 101, 114, 118, 105, 99, 101, 52, 81, 117, 101, 114, 121, 69, 120, 112, 101,
+                110, 115, 101, 115,
             ];
-            type Params = ();
-            type Reply = super::IoState;
+            type Params = u32;
+            type Reply = Option<Vec<super::Expense>>;
         }
-        pub struct QueryProducerEnergy(());
-
-        impl QueryProducerEnergy {
+        pub struct QueryGroupMembers(());
+        impl QueryGroupMembers {
             #[allow(dead_code)]
-            pub fn encode_call(producer_id: ActorId) -> Vec<u8> {
-                <QueryProducerEnergy as ActionIo>::encode_call(&producer_id)
+            pub fn encode_call(group_id: u32) -> Vec<u8> {
+                <QueryGroupMembers as ActionIo>::encode_call(&group_id)
             }
         }
-
-        impl ActionIo for QueryProducerEnergy {
+        impl ActionIo for QueryGroupMembers {
             const ROUTE: &'static [u8] = &[
-                28, 83, 101, 114, 118, 105, 99, 101, 76, 81, 117, 101, 114, 121, 80, 114, 111, 100,
-                117, 99, 101, 114, 69, 110, 101, 114, 103, 121,
+                28, 83, 101, 114, 118, 105, 99, 101, 68, 81, 117, 101, 114, 121, 71, 114, 111, 117,
+                112, 77, 101, 109, 98, 101, 114, 115,
             ];
-            type Params = ActorId;
-            type Reply = Option<u64>;
+            type Params = u32;
+            type Reply = Option<Vec<ActorId>>;
         }
     }
 }
 #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
+pub struct Expense {
+    pub id: u32,
+    pub description: String,
+    pub amount: u128,
+    pub currency: String,
+}
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+#[codec(crate = sails_rs::scale_codec)]
+#[scale_info(crate = sails_rs::scale_info)]
 pub enum Events {
-    ProducerRegistered { id: ActorId },
-    ProducerAlreadyRegistered { id: ActorId },
-    ProducerNotFound { id: ActorId },
-    EnergyUpdated { id: ActorId, energy: u64 },
-    AdminRegistered { id: ActorId },
-    AdminAlreadyRegistered { id: ActorId },
+    GroupCreated(u32),
+    UserJoined((ActorId, u32)),
+    ExpenseAdded((u32, u32)),
+    Error(String),
 }
 #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
 pub struct IoState {
     pub admins: Vec<ActorId>,
-    pub energy_producers: Vec<IoEnergyProducer>,
+    pub groups: Vec<Group>,
 }
 #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
-pub struct IoEnergyProducer {
-    pub id: ActorId,
-    pub energy_generated: u64,
+pub struct Group {
+    pub id: u32,
+    pub members: Vec<ActorId>,
+    pub expenses: Vec<Expense>,
 }
 
 pub mod traits {
@@ -244,24 +251,26 @@ pub mod traits {
     #[allow(clippy::type_complexity)]
     pub trait Service {
         type Args;
-        fn register_admin(
+        fn add_expense(
             &mut self,
-            admin_id: ActorId,
+            group_id: u32,
+            expense: Expense,
         ) -> impl Call<Output = Events, Args = Self::Args>;
-        fn register_producer(
+        fn create_group(&mut self, group_id: u32) -> impl Call<Output = Events, Args = Self::Args>;
+        fn join_group(
             &mut self,
-            producer_id: ActorId,
+            group_id: u32,
+            user_id: ActorId,
         ) -> impl Call<Output = Events, Args = Self::Args>;
-        fn update_producer_energy(
-            &mut self,
-            producer_id: ActorId,
-            energy: u64,
-        ) -> impl Call<Output = Events, Args = Self::Args>;
-        fn query_admins(&self) -> impl Query<Output = IoState, Args = Self::Args>;
-        fn query_energy_producers(&self) -> impl Query<Output = IoState, Args = Self::Args>;
-        fn query_producer_energy(
+        fn query(&self) -> impl Query<Output = IoState, Args = Self::Args>;
+        fn query_admins(&self) -> impl Query<Output = Vec<ActorId>, Args = Self::Args>;
+        fn query_expenses(
             &self,
-            producer_id: ActorId,
-        ) -> impl Query<Output = Option<u64>, Args = Self::Args>;
+            group_id: u32,
+        ) -> impl Query<Output = Option<Vec<Expense>>, Args = Self::Args>;
+        fn query_group_members(
+            &self,
+            group_id: u32,
+        ) -> impl Query<Output = Option<Vec<ActorId>>, Args = Self::Args>;
     }
 }

@@ -1,3 +1,118 @@
-// Add your service code
+// service.rs
+// necesary crates
+use sails_rs::{
+    prelude::*,
+    gstd::msg,
+};
 
+// import the state
+use crate::states::*;
+use crate::services::service::state::*;
 
+#[derive(Default)]
+pub struct Service;
+
+// Impl for seed related function to init the state
+impl Service {
+    // Related function to init the service state (call only once)
+    pub fn seed() {
+        State::init_state();
+    }
+}
+
+#[service]
+impl Service {
+    // Service constructor
+    pub fn new() -> Self {
+        Self
+    }
+
+    // Service to create a group
+    pub fn create_group(&mut self, group_id: u32) -> Events {
+        // Validation - check if the group already exists
+        let state = State::state_mut();
+        if state.groups.iter().any(|g| g.id == group_id) {
+            return Events::Error("Group already exists".to_owned());
+        }
+
+        // Logic to create a group
+        state.create_group(group_id);
+
+        // Change State and return event
+        Events::GroupCreated(group_id)
+    }
+
+    // Service for a user to join a specific group
+    pub fn join_group(&mut self, group_id: u32, user_id: ActorId) -> Events {
+        // Validation - check if the group exists
+        let state = State::state_mut();
+        if let Some(group) = state.groups.iter().find(|g| g.id == group_id) {
+            if !group.members.contains(&user_id) {
+                // Logic to add a member to the group
+                state.join_group(group_id, user_id);
+
+                // Return successful event
+                return Events::UserJoined(user_id, group_id);
+            }
+            return Events::Error("User already in group".to_owned());
+        }
+        Events::Error("Group not found".to_owned())
+    }
+
+    // Service to add an expense to the group
+    pub fn add_expense(&mut self, group_id: u32, expense: Expense) -> Events {
+        // Validation - check if the group exists
+        let state = State::state_mut();
+        if state.groups.iter().any(|g| g.id == group_id) {
+            // Logic to add an expense
+            state.add_expense(group_id, expense.clone());
+
+            // Return successful event
+            return Events::ExpenseAdded(group_id, expense.id);
+        }
+        Events::Error("Group not found".to_owned())
+    }
+
+    // Queried function to get all admin ids
+    pub fn query_admins(&self) -> Vec<ActorId> {
+        State::state_ref().admins.clone()
+    }
+
+    // Queried function to get group members by group id
+    pub fn query_group_members(&self, group_id: u32) -> Option<Vec<ActorId>> {
+        State::state_ref()
+            .groups
+            .iter()
+            .find(|g| g.id == group_id)
+            .map(|g| g.members.clone())
+    }
+
+    // Queried function to get expenses for a group
+    pub fn query_expenses(&self, group_id: u32) -> Option<Vec<Expense>> {
+        State::state_ref()
+            .groups
+            .iter()
+            .find(|g| g.id == group_id)
+            .map(|g| g.expenses.clone())
+    }
+
+    // Returns a struct that will be sent as a response to the user
+    pub fn query(&self) -> IoState {
+        State::state_ref()
+            .to_owned()
+            .into()
+    }
+}
+
+// struct to use as a response to the user
+#[derive(Encode, Decode, TypeInfo)]
+#[codec(crate = sails_rs::scale_codec)]
+#[scale_info(crate = sails_rs::scale_info)]
+pub enum Events {
+    GroupCreated(u32),
+    UserJoined(ActorId, u32),
+    ExpenseAdded(u32, u32),
+    Error(String),
+}
+
+//This code adds services for creating a group, joining a group, and adding an expense, along with query methods to retrieve admins, group members, and expenses. It includes validation checks to ensure logical consistency, such as checking if a group already exists or if a user is already part of a group before joining.  m 
