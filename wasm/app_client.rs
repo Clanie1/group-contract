@@ -66,12 +66,8 @@ impl<R: Remoting + Clone> traits::Service for Service<R> {
     fn create_group(&mut self) -> impl Call<Output = Events, Args = R::Args> {
         RemotingAction::<_, service::io::CreateGroup>::new(self.remoting.clone(), ())
     }
-    fn join_group(
-        &mut self,
-        group_id: u32,
-        user_id: ActorId,
-    ) -> impl Call<Output = Events, Args = R::Args> {
-        RemotingAction::<_, service::io::JoinGroup>::new(self.remoting.clone(), (group_id, user_id))
+    fn join_group(&mut self, group_id: u32) -> impl Call<Output = Events, Args = R::Args> {
+        RemotingAction::<_, service::io::JoinGroup>::new(self.remoting.clone(), group_id)
     }
     fn query(&self) -> impl Query<Output = IoState, Args = R::Args> {
         RemotingAction::<_, service::io::Query>::new(self.remoting.clone(), ())
@@ -132,15 +128,15 @@ pub mod service {
         pub struct JoinGroup(());
         impl JoinGroup {
             #[allow(dead_code)]
-            pub fn encode_call(group_id: u32, user_id: ActorId) -> Vec<u8> {
-                <JoinGroup as ActionIo>::encode_call(&(group_id, user_id))
+            pub fn encode_call(group_id: u32) -> Vec<u8> {
+                <JoinGroup as ActionIo>::encode_call(&group_id)
             }
         }
         impl ActionIo for JoinGroup {
             const ROUTE: &'static [u8] = &[
                 28, 83, 101, 114, 118, 105, 99, 101, 36, 74, 111, 105, 110, 71, 114, 111, 117, 112,
             ];
-            type Params = (u32, ActorId);
+            type Params = u32;
             type Reply = super::Events;
         }
         pub struct Query(());
@@ -257,11 +253,7 @@ pub mod traits {
             expense: Expense,
         ) -> impl Call<Output = Events, Args = Self::Args>;
         fn create_group(&mut self) -> impl Call<Output = Events, Args = Self::Args>;
-        fn join_group(
-            &mut self,
-            group_id: u32,
-            user_id: ActorId,
-        ) -> impl Call<Output = Events, Args = Self::Args>;
+        fn join_group(&mut self, group_id: u32) -> impl Call<Output = Events, Args = Self::Args>;
         fn query(&self) -> impl Query<Output = IoState, Args = Self::Args>;
         fn query_admins(&self) -> impl Query<Output = Vec<ActorId>, Args = Self::Args>;
         fn query_expenses(

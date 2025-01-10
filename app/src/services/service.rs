@@ -43,7 +43,8 @@ impl Service {
     }
 
     // Service for a user to join a specific group
-    pub fn join_group(&mut self, group_id: u32, user_id: ActorId) -> Events {
+    pub fn join_group(&mut self, group_id: u32) -> Events {
+        let user_id = msg::source();
         // Validation - check if the group exists
         let state = State::state_mut();
         if let Some(group) = state.groups.iter().find(|g| g.id == group_id) {

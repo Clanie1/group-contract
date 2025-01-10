@@ -30,7 +30,7 @@ constructor {
 service Service {
   AddExpense : (group_id: u32, expense: Expense) -> Events;
   CreateGroup : () -> Events;
-  JoinGroup : (group_id: u32, user_id: actor_id) -> Events;
+  JoinGroup : (group_id: u32) -> Events;
   query Query : () -> IoState;
   query QueryAdmins : () -> vec actor_id;
   query QueryExpenses : (group_id: u32) -> opt vec Expense;
