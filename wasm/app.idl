@@ -1,5 +1,4 @@
-type Expense = struct {
-  id: u32,
+type ExpenseDto = struct {
   description: str,
   amount: u128,
   currency: str,
@@ -23,12 +22,20 @@ type Group = struct {
   expenses: vec Expense,
 };
 
+type Expense = struct {
+  id: u32,
+  description: str,
+  amount: u128,
+  currency: str,
+  actor_id: actor_id,
+};
+
 constructor {
   New : ();
 };
 
 service Service {
-  AddExpense : (group_id: u32, expense: Expense) -> Events;
+  AddExpense : (group_id: u32, expenseDTO: ExpenseDto) -> Events;
   CreateGroup : () -> Events;
   JoinGroup : (group_id: u32) -> Events;
   query Query : () -> IoState;

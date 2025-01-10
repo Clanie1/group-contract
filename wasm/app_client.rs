@@ -56,11 +56,11 @@ impl<R: Remoting + Clone> traits::Service for Service<R> {
     fn add_expense(
         &mut self,
         group_id: u32,
-        expense: Expense,
+        expenseDTO: ExpenseDto,
     ) -> impl Call<Output = Events, Args = R::Args> {
         RemotingAction::<_, service::io::AddExpense>::new(
             self.remoting.clone(),
-            (group_id, expense),
+            (group_id, expenseDTO),
         )
     }
     fn create_group(&mut self) -> impl Call<Output = Events, Args = R::Args> {
@@ -98,8 +98,8 @@ pub mod service {
         pub struct AddExpense(());
         impl AddExpense {
             #[allow(dead_code)]
-            pub fn encode_call(group_id: u32, expense: super::Expense) -> Vec<u8> {
-                <AddExpense as ActionIo>::encode_call(&(group_id, expense))
+            pub fn encode_call(group_id: u32, expenseDTO: super::ExpenseDto) -> Vec<u8> {
+                <AddExpense as ActionIo>::encode_call(&(group_id, expenseDTO))
             }
         }
         impl ActionIo for AddExpense {
@@ -107,7 +107,7 @@ pub mod service {
                 28, 83, 101, 114, 118, 105, 99, 101, 40, 65, 100, 100, 69, 120, 112, 101, 110, 115,
                 101,
             ];
-            type Params = (u32, super::Expense);
+            type Params = (u32, super::ExpenseDto);
             type Reply = super::Events;
         }
         pub struct CreateGroup(());
@@ -203,8 +203,7 @@ pub mod service {
 #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
-pub struct Expense {
-    pub id: u32,
+pub struct ExpenseDto {
     pub description: String,
     pub amount: u128,
     pub currency: String,
@@ -233,6 +232,16 @@ pub struct Group {
     pub members: Vec<ActorId>,
     pub expenses: Vec<Expense>,
 }
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+#[codec(crate = sails_rs::scale_codec)]
+#[scale_info(crate = sails_rs::scale_info)]
+pub struct Expense {
+    pub id: u32,
+    pub description: String,
+    pub amount: u128,
+    pub currency: String,
+    pub actor_id: ActorId,
+}
 
 pub mod traits {
     use super::*;
@@ -250,7 +259,7 @@ pub mod traits {
         fn add_expense(
             &mut self,
             group_id: u32,
-            expense: Expense,
+            expenseDTO: ExpenseDto,
         ) -> impl Call<Output = Events, Args = Self::Args>;
         fn create_group(&mut self) -> impl Call<Output = Events, Args = Self::Args>;
         fn join_group(&mut self, group_id: u32) -> impl Call<Output = Events, Args = Self::Args>;

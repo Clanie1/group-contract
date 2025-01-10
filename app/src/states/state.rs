@@ -24,12 +24,42 @@ pub struct Group {
     pub expenses: Vec<Expense>,
 }
 
+#[derive(Encode, Decode, TypeInfo, Clone, Default)]
+#[codec(crate = sails_rs::scale_codec)]
+#[scale_info(crate = sails_rs::scale_info)]
+pub struct GroupDTO {
+    pub members: Vec<u32>,
+    pub expenses: Vec<ExpenseDTO>,
+}
+
 // Struct to represent an expense
 #[derive(Encode, Decode, TypeInfo, Clone, Default)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
 pub struct Expense {
     pub id: u32,
+    pub description: String,
+    pub amount: u128,
+    pub currency: String,
+    pub actor_id: ActorId
+}
+
+impl Expense {
+    pub fn new(id: u32, description: String, amount: u128, currency: String, actor_id:ActorId) -> Self {
+        Expense {
+            id,
+            description,
+            amount,
+            currency,
+            actor_id
+        }
+    }
+}
+
+#[derive(Encode, Decode, TypeInfo, Clone, Default)]
+#[codec(crate = sails_rs::scale_codec)]
+#[scale_info(crate = sails_rs::scale_info)]
+pub struct ExpenseDTO {
     pub description: String,
     pub amount: u128,
     pub currency: String,

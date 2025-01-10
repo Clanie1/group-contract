@@ -61,9 +61,19 @@ impl Service {
     }
 
     // Service to add an expense to the group
-    pub fn add_expense(&mut self, group_id: u32, expense: Expense) -> Events {
+    pub fn add_expense(&mut self, group_id: u32, expenseDTO: ExpenseDTO) -> Events {
+        let actor_id = msg::source();
         // Validation - check if the group exists
+        let expense = Expense::new(
+            Utils::generate_group_id(),
+            expenseDTO.description, 
+            expenseDTO.amount, 
+            expenseDTO.currency,
+            actor_id
+        );
+
         let state = State::state_mut();
+
         if state.groups.iter().any(|g| g.id == group_id) {
             // Logic to add an expense
             state.add_expense(group_id, expense.clone());
