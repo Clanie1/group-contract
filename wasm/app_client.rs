@@ -63,8 +63,8 @@ impl<R: Remoting + Clone> traits::Service for Service<R> {
             (group_id, expense),
         )
     }
-    fn create_group(&mut self, group_id: u32) -> impl Call<Output = Events, Args = R::Args> {
-        RemotingAction::<_, service::io::CreateGroup>::new(self.remoting.clone(), group_id)
+    fn create_group(&mut self) -> impl Call<Output = Events, Args = R::Args> {
+        RemotingAction::<_, service::io::CreateGroup>::new(self.remoting.clone(), ())
     }
     fn join_group(
         &mut self,
@@ -117,8 +117,8 @@ pub mod service {
         pub struct CreateGroup(());
         impl CreateGroup {
             #[allow(dead_code)]
-            pub fn encode_call(group_id: u32) -> Vec<u8> {
-                <CreateGroup as ActionIo>::encode_call(&group_id)
+            pub fn encode_call() -> Vec<u8> {
+                <CreateGroup as ActionIo>::encode_call(&())
             }
         }
         impl ActionIo for CreateGroup {
@@ -126,7 +126,7 @@ pub mod service {
                 28, 83, 101, 114, 118, 105, 99, 101, 44, 67, 114, 101, 97, 116, 101, 71, 114, 111,
                 117, 112,
             ];
-            type Params = u32;
+            type Params = ();
             type Reply = super::Events;
         }
         pub struct JoinGroup(());
@@ -256,7 +256,7 @@ pub mod traits {
             group_id: u32,
             expense: Expense,
         ) -> impl Call<Output = Events, Args = Self::Args>;
-        fn create_group(&mut self, group_id: u32) -> impl Call<Output = Events, Args = Self::Args>;
+        fn create_group(&mut self) -> impl Call<Output = Events, Args = Self::Args>;
         fn join_group(
             &mut self,
             group_id: u32,
