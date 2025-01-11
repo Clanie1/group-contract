@@ -86,15 +86,23 @@ impl Service {
         Events::Error("Group not found".to_owned())
     }
 
-    // pub fn delete_expense(&mut self, group_id: u32, expense_id: u32)->Events{
-    //     let actor_id = msg::source();
+    pub fn add_payment(&mut self, group_id: u32, amount: u32, to: ActorId)->Events{
+        let actor_id = msg::source();
 
-    //     let state = State::state_mut();
+        let state = State::state_mut();
 
-    //     let group:Group = state.groups.iter().find(|g| g.id == group_id).unwrap();
-
-    //     group.expenses = group.expenses.iter().filter(|e| e!= expense_id);
-    // }
+        if let Some(group) = state.groups.iter_mut().find(|g| g.id == group_id) {
+            group.payments.push(Payment::new(
+                Utils::generate_group_id(),
+                actor_id,
+                to,
+                amount,
+            ));
+            return Events::PaymentAdded(group_id, amount);
+        }
+        Events::Error("Group not found".to_owned())
+        
+    }
 
     pub fn query_group(&self, groupId: u32)->Group{
         State::state_ref()
@@ -150,6 +158,7 @@ pub enum Events {
     GroupCreated(u32),
     UserJoined(ActorId, u32),
     ExpenseAdded(u32, u32),
+    PaymentAdded(u32, u32),
     Error(String),
 }
 

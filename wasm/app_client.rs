@@ -63,6 +63,17 @@ impl<R: Remoting + Clone> traits::Service for Service<R> {
             (group_id, expenseDTO),
         )
     }
+    fn add_payment(
+        &mut self,
+        group_id: u32,
+        amount: u32,
+        to: ActorId,
+    ) -> impl Call<Output = Events, Args = R::Args> {
+        RemotingAction::<_, service::io::AddPayment>::new(
+            self.remoting.clone(),
+            (group_id, amount, to),
+        )
+    }
     fn create_group(&mut self, group_name: String) -> impl Call<Output = Events, Args = R::Args> {
         RemotingAction::<_, service::io::CreateGroup>::new(self.remoting.clone(), group_name)
     }
@@ -111,6 +122,21 @@ pub mod service {
                 101,
             ];
             type Params = (u32, super::ExpenseDto);
+            type Reply = super::Events;
+        }
+        pub struct AddPayment(());
+        impl AddPayment {
+            #[allow(dead_code)]
+            pub fn encode_call(group_id: u32, amount: u32, to: ActorId) -> Vec<u8> {
+                <AddPayment as ActionIo>::encode_call(&(group_id, amount, to))
+            }
+        }
+        impl ActionIo for AddPayment {
+            const ROUTE: &'static [u8] = &[
+                28, 83, 101, 114, 118, 105, 99, 101, 40, 65, 100, 100, 80, 97, 121, 109, 101, 110,
+                116,
+            ];
+            type Params = (u32, u32, ActorId);
             type Reply = super::Events;
         }
         pub struct CreateGroup(());
@@ -233,6 +259,7 @@ pub enum Events {
     GroupCreated(u32),
     UserJoined((ActorId, u32)),
     ExpenseAdded((u32, u32)),
+    PaymentAdded((u32, u32)),
     Error(String),
 }
 #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
@@ -249,6 +276,7 @@ pub struct Group {
     pub name: String,
     pub members: Vec<ActorId>,
     pub expenses: Vec<Expense>,
+    pub payments: Vec<Payment>,
 }
 #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
 #[codec(crate = sails_rs::scale_codec)]
@@ -259,6 +287,15 @@ pub struct Expense {
     pub amount: u128,
     pub currency: String,
     pub actor_id: ActorId,
+}
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+#[codec(crate = sails_rs::scale_codec)]
+#[scale_info(crate = sails_rs::scale_info)]
+pub struct Payment {
+    pub id: u32,
+    pub from: ActorId,
+    pub to: ActorId,
+    pub amount: u32,
 }
 
 pub mod traits {
@@ -278,6 +315,12 @@ pub mod traits {
             &mut self,
             group_id: u32,
             expenseDTO: ExpenseDto,
+        ) -> impl Call<Output = Events, Args = Self::Args>;
+        fn add_payment(
+            &mut self,
+            group_id: u32,
+            amount: u32,
+            to: ActorId,
         ) -> impl Call<Output = Events, Args = Self::Args>;
         fn create_group(
             &mut self,

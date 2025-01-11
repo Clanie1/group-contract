@@ -22,6 +22,7 @@ pub struct Group {
     pub name: String,
     pub members: Vec<ActorId>,
     pub expenses: Vec<Expense>,
+    pub payments: Vec<Payment>
 }
 
 #[derive(Encode, Decode, TypeInfo, Clone, Default)]
@@ -31,6 +32,27 @@ pub struct GroupDTO {
     pub name: String,
     pub members: Vec<u32>,
     pub expenses: Vec<ExpenseDTO>,
+}
+
+#[derive(Encode, Decode, TypeInfo, Clone, Default)]
+#[codec(crate = sails_rs::scale_codec)]
+#[scale_info(crate = sails_rs::scale_info)]
+pub struct Payment{
+    pub id: u32,
+    pub from: ActorId,
+    pub to: ActorId,
+    pub amount: u32
+}
+
+impl Payment{
+    pub fn new(id:u32, from: ActorId,to:ActorId,amount:u32)->Self{
+        Payment{
+            id,
+            from,
+            to,
+            amount
+        }
+    }
 }
 
 // Struct to represent an expense
