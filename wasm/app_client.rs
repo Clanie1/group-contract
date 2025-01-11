@@ -72,14 +72,17 @@ impl<R: Remoting + Clone> traits::Service for Service<R> {
     fn query(&self) -> impl Query<Output = IoState, Args = R::Args> {
         RemotingAction::<_, service::io::Query>::new(self.remoting.clone(), ())
     }
-    fn query_admins(&self) -> impl Query<Output = Vec<ActorId>, Args = R::Args> {
-        RemotingAction::<_, service::io::QueryAdmins>::new(self.remoting.clone(), ())
+    fn query_actor_groups(&self) -> impl Query<Output = Vec<Group>, Args = R::Args> {
+        RemotingAction::<_, service::io::QueryActorGroups>::new(self.remoting.clone(), ())
     }
     fn query_expenses(
         &self,
         group_id: u32,
     ) -> impl Query<Output = Option<Vec<Expense>>, Args = R::Args> {
         RemotingAction::<_, service::io::QueryExpenses>::new(self.remoting.clone(), group_id)
+    }
+    fn query_group(&self, groupId: u32) -> impl Query<Output = Group, Args = R::Args> {
+        RemotingAction::<_, service::io::QueryGroup>::new(self.remoting.clone(), groupId)
     }
     fn query_group_members(
         &self,
@@ -153,20 +156,20 @@ pub mod service {
             type Params = ();
             type Reply = super::IoState;
         }
-        pub struct QueryAdmins(());
-        impl QueryAdmins {
+        pub struct QueryActorGroups(());
+        impl QueryActorGroups {
             #[allow(dead_code)]
             pub fn encode_call() -> Vec<u8> {
-                <QueryAdmins as ActionIo>::encode_call(&())
+                <QueryActorGroups as ActionIo>::encode_call(&())
             }
         }
-        impl ActionIo for QueryAdmins {
+        impl ActionIo for QueryActorGroups {
             const ROUTE: &'static [u8] = &[
-                28, 83, 101, 114, 118, 105, 99, 101, 44, 81, 117, 101, 114, 121, 65, 100, 109, 105,
-                110, 115,
+                28, 83, 101, 114, 118, 105, 99, 101, 64, 81, 117, 101, 114, 121, 65, 99, 116, 111,
+                114, 71, 114, 111, 117, 112, 115,
             ];
             type Params = ();
-            type Reply = Vec<ActorId>;
+            type Reply = Vec<super::Group>;
         }
         pub struct QueryExpenses(());
         impl QueryExpenses {
@@ -182,6 +185,21 @@ pub mod service {
             ];
             type Params = u32;
             type Reply = Option<Vec<super::Expense>>;
+        }
+        pub struct QueryGroup(());
+        impl QueryGroup {
+            #[allow(dead_code)]
+            pub fn encode_call(groupId: u32) -> Vec<u8> {
+                <QueryGroup as ActionIo>::encode_call(&groupId)
+            }
+        }
+        impl ActionIo for QueryGroup {
+            const ROUTE: &'static [u8] = &[
+                28, 83, 101, 114, 118, 105, 99, 101, 40, 81, 117, 101, 114, 121, 71, 114, 111, 117,
+                112,
+            ];
+            type Params = u32;
+            type Reply = super::Group;
         }
         pub struct QueryGroupMembers(());
         impl QueryGroupMembers {
@@ -221,7 +239,6 @@ pub enum Events {
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
 pub struct IoState {
-    pub admins: Vec<ActorId>,
     pub groups: Vec<Group>,
 }
 #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
@@ -264,11 +281,12 @@ pub mod traits {
         fn create_group(&mut self) -> impl Call<Output = Events, Args = Self::Args>;
         fn join_group(&mut self, group_id: u32) -> impl Call<Output = Events, Args = Self::Args>;
         fn query(&self) -> impl Query<Output = IoState, Args = Self::Args>;
-        fn query_admins(&self) -> impl Query<Output = Vec<ActorId>, Args = Self::Args>;
+        fn query_actor_groups(&self) -> impl Query<Output = Vec<Group>, Args = Self::Args>;
         fn query_expenses(
             &self,
             group_id: u32,
         ) -> impl Query<Output = Option<Vec<Expense>>, Args = Self::Args>;
+        fn query_group(&self, groupId: u32) -> impl Query<Output = Group, Args = Self::Args>;
         fn query_group_members(
             &self,
             group_id: u32,

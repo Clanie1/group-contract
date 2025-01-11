@@ -10,7 +10,6 @@ pub static mut STATE: Option<State> = None;
 // Create a struct for the state
 #[derive(Clone, Default)]
 pub struct State {
-    pub admins: Vec<ActorId>,
     pub groups: Vec<Group>,
 }
 
@@ -137,13 +136,12 @@ impl State {
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
 pub struct IoState {
-    pub admins: Vec<ActorId>,
     pub groups: Vec<Group>,
 }
 
 impl From<State> for IoState {
     fn from(value: State) -> Self {
-        let State { admins, groups } = value;
-        Self { admins, groups }
+        let State { groups } = value;
+        Self { groups }
     }
 }

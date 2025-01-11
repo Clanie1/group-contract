@@ -12,7 +12,6 @@ type Events = enum {
 };
 
 type IoState = struct {
-  admins: vec actor_id,
   groups: vec Group,
 };
 
@@ -39,8 +38,9 @@ service Service {
   CreateGroup : () -> Events;
   JoinGroup : (group_id: u32) -> Events;
   query Query : () -> IoState;
-  query QueryAdmins : () -> vec actor_id;
+  query QueryActorGroups : () -> vec Group;
   query QueryExpenses : (group_id: u32) -> opt vec Expense;
+  query QueryGroup : (groupId: u32) -> Group;
   query QueryGroupMembers : (group_id: u32) -> opt vec actor_id;
 };
 

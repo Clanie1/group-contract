@@ -82,11 +82,36 @@ impl Service {
             return Events::ExpenseAdded(group_id, expense.id);
         }
         Events::Error("Group not found".to_owned())
-    } 
+    }
 
-    // Queried function to get all admin ids
-    pub fn query_admins(&self) -> Vec<ActorId> {
-        State::state_ref().admins.clone()
+    // pub fn delete_expense(&mut self, group_id: u32, expense_id: u32)->Events{
+    //     let actor_id = msg::source();
+
+    //     let state = State::state_mut();
+
+    //     let group:Group = state.groups.iter().find(|g| g.id == group_id).unwrap();
+
+    //     group.expenses = group.expenses.iter().filter(|e| e!= expense_id);
+    // }
+
+    pub fn query_group(&self, groupId: u32)->Group{
+        State::state_ref()
+        .groups
+        .iter()
+        .find(|x| x.id == groupId) // Correct closure
+        .cloned() // Convert &Group to Group
+        .expect("Group not found") 
+    }
+
+    pub fn query_actor_groups(&self) -> Vec<Group> {
+        let actor_id = msg::source(); 
+
+        State::state_ref()
+            .groups
+            .iter()
+            .filter(|group| group.members.contains(&actor_id)) // Filter groups where actor_id is in the members list
+            .cloned() // Clone the groups so they can be returned
+            .collect() // Collect the results into a Vec<Group>
     }
 
     // Queried function to get group members by group id
