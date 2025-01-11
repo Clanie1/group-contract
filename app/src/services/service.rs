@@ -29,7 +29,7 @@ impl Service {
     }
 
     // Service to create a group
-    pub fn create_group(&mut self) -> Events {
+    pub fn create_group(&mut self, group_name: String) -> Events {
 
         let wallet = msg::source();
 
@@ -38,7 +38,7 @@ impl Service {
         let new_group_id = Utils::generate_group_id();
 
         // Logic to create a group
-        state.create_group(new_group_id, wallet);
+        state.create_group(new_group_id, group_name, wallet);
 
         // Change State and return event
         Events::GroupCreated(new_group_id)

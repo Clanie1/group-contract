@@ -63,8 +63,8 @@ impl<R: Remoting + Clone> traits::Service for Service<R> {
             (group_id, expenseDTO),
         )
     }
-    fn create_group(&mut self) -> impl Call<Output = Events, Args = R::Args> {
-        RemotingAction::<_, service::io::CreateGroup>::new(self.remoting.clone(), ())
+    fn create_group(&mut self, group_name: String) -> impl Call<Output = Events, Args = R::Args> {
+        RemotingAction::<_, service::io::CreateGroup>::new(self.remoting.clone(), group_name)
     }
     fn join_group(&mut self, group_id: u32) -> impl Call<Output = Events, Args = R::Args> {
         RemotingAction::<_, service::io::JoinGroup>::new(self.remoting.clone(), group_id)
@@ -116,8 +116,8 @@ pub mod service {
         pub struct CreateGroup(());
         impl CreateGroup {
             #[allow(dead_code)]
-            pub fn encode_call() -> Vec<u8> {
-                <CreateGroup as ActionIo>::encode_call(&())
+            pub fn encode_call(group_name: String) -> Vec<u8> {
+                <CreateGroup as ActionIo>::encode_call(&group_name)
             }
         }
         impl ActionIo for CreateGroup {
@@ -125,7 +125,7 @@ pub mod service {
                 28, 83, 101, 114, 118, 105, 99, 101, 44, 67, 114, 101, 97, 116, 101, 71, 114, 111,
                 117, 112,
             ];
-            type Params = ();
+            type Params = String;
             type Reply = super::Events;
         }
         pub struct JoinGroup(());
@@ -246,6 +246,7 @@ pub struct IoState {
 #[scale_info(crate = sails_rs::scale_info)]
 pub struct Group {
     pub id: u32,
+    pub name: String,
     pub members: Vec<ActorId>,
     pub expenses: Vec<Expense>,
 }
@@ -278,7 +279,10 @@ pub mod traits {
             group_id: u32,
             expenseDTO: ExpenseDto,
         ) -> impl Call<Output = Events, Args = Self::Args>;
-        fn create_group(&mut self) -> impl Call<Output = Events, Args = Self::Args>;
+        fn create_group(
+            &mut self,
+            group_name: String,
+        ) -> impl Call<Output = Events, Args = Self::Args>;
         fn join_group(&mut self, group_id: u32) -> impl Call<Output = Events, Args = Self::Args>;
         fn query(&self) -> impl Query<Output = IoState, Args = Self::Args>;
         fn query_actor_groups(&self) -> impl Query<Output = Vec<Group>, Args = Self::Args>;

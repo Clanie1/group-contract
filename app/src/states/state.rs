@@ -19,6 +19,7 @@ pub struct State {
 #[scale_info(crate = sails_rs::scale_info)]
 pub struct Group {
     pub id: u32,
+    pub name: String,
     pub members: Vec<ActorId>,
     pub expenses: Vec<Expense>,
 }
@@ -27,6 +28,7 @@ pub struct Group {
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
 pub struct GroupDTO {
+    pub name: String,
     pub members: Vec<u32>,
     pub expenses: Vec<ExpenseDTO>,
 }
@@ -93,9 +95,10 @@ impl State {
     }
 
     // Service to create a group 
-    pub fn create_group(&mut self, _group_id: u32, wallet: ActorId) {
+    pub fn create_group(&mut self, _group_id: u32, name: String, wallet: ActorId) {
         self.groups.push(Group {
             id: _group_id,
+            name: name,
             members: vec![wallet],
             ..Default::default()
         });

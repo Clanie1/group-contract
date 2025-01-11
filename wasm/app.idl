@@ -17,6 +17,7 @@ type IoState = struct {
 
 type Group = struct {
   id: u32,
+  name: str,
   members: vec actor_id,
   expenses: vec Expense,
 };
@@ -35,7 +36,7 @@ constructor {
 
 service Service {
   AddExpense : (group_id: u32, expenseDTO: ExpenseDto) -> Events;
-  CreateGroup : () -> Events;
+  CreateGroup : (group_name: str) -> Events;
   JoinGroup : (group_id: u32) -> Events;
   query Query : () -> IoState;
   query QueryActorGroups : () -> vec Group;
