@@ -93,9 +93,10 @@ impl State {
     }
 
     // Service to create a group 
-    pub fn create_group(&mut self, _group_id: u32) {
+    pub fn create_group(&mut self, _group_id: u32, wallet: ActorId) {
         self.groups.push(Group {
             id: _group_id,
+            members: vec![wallet],
             ..Default::default()
         });
     }
